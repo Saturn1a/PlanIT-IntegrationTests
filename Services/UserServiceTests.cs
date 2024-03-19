@@ -4,9 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace PlanITAPI.IntegrationTests.Docker.Services
+namespace PlanITAPI.IntegrationTests.Docker.Services;
+
+public class UserServiceTests
 {
-    internal class UserServiceTests
-    {
-    }
 }
