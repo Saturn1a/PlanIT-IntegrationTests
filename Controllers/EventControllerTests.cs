@@ -14,7 +14,7 @@ public class EventControllerTests : IAsyncLifetime
 {
     private readonly PlanITWebAppFactory _factory;
     private HttpClient _client;
-
+    // KOMMENTAR TIL GIT
     public EventControllerTests()
     {
         _factory = new PlanITWebAppFactory();
