@@ -5,7 +5,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.VisualStudio.TestPlatform.TestHost;
 using PlanIT.API.Data;
+using PlanIT.API.Models.DTOs;
+using PlanIT.API.Services.Interfaces;
+using PlanIT.API.Services;
 using Testcontainers.MySql;
+using Microsoft.AspNetCore.Authentication;
 
 namespace PlanITAPI.IntegrationTests.Docker;
 
@@ -17,7 +21,7 @@ public class PlanITWebAppFactory : WebApplicationFactory<Program>, IAsyncLifetim
     public PlanITWebAppFactory()
     {
         _mySqlContainer = new MySqlBuilder()
-            .WithImage("tinamao/planit-db")
+            .WithImage("hannapersson/planit-db")
             .WithDatabase("planit_db")
             .WithUsername("planit-user")
             .WithPassword("5ecret-plan1t")
@@ -28,15 +32,15 @@ public class PlanITWebAppFactory : WebApplicationFactory<Program>, IAsyncLifetim
     {
         builder.ConfigureTestServices(services =>
         {
-            // først ta bort DbContextOptions
+            // Removes DbContextOptions
             var descriptor = services.FirstOrDefault(s => s.ServiceType == typeof(DbContextOptions<PlanITDbContext>));
 
-            if (descriptor is not null)
+            if (descriptor != null)
             {
                 services.Remove(descriptor);
             }
 
-            // Setter opp DbContext på nytt
+            // Sets up new DbContext
             services.AddDbContext<PlanITDbContext>(options =>
             {
                 options.UseMySql(
@@ -47,17 +51,29 @@ public class PlanITWebAppFactory : WebApplicationFactory<Program>, IAsyncLifetim
                         builder.EnableRetryOnFailure();
                     });
             });
-        });
+
+
+            services.AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme = "TestScheme";
+                options.DefaultChallengeScheme = "TestScheme";
+            })
+            .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>("TestScheme", options => { });
+
+
+
+        });   
+
     }
 
-    // Innebygd interface
-    // STARTER CONTAINER
+    
+    // Starts container
     public async Task InitializeAsync()
     {
         await _mySqlContainer.StartAsync();
     }
 
-    // STOPPER CONTAINER
+    // Stops container
     public new async Task DisposeAsync()
     {
         await _mySqlContainer.StopAsync();
