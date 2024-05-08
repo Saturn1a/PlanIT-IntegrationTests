@@ -16,22 +16,22 @@ public class TestAuthHandler : AuthenticationHandler<AuthenticationSchemeOptions
     {
     }
 
-
-
-
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-
-
+        // Example user details
+        var userId = "1";  // Adjust as necessary to match your test user's ID
+        var userEmail = "perhansen@mail.com";  // Adjust as necessary to match your test user's email
 
         var claims = new[] {
-        new Claim(ClaimTypes.NameIdentifier, "1"),
-        new Claim(ClaimTypes.Email, "perhansen@mail.com")
-    };
-        var identity = new ClaimsIdentity(claims, "TestAuthType");  // Ensure "TestAuthType" matches any expectation in the middleware or controller
+            new Claim(ClaimTypes.NameIdentifier, userId),
+            new Claim(ClaimTypes.Email, userEmail),
+            // Add other claims as necessary to match JWT token claims
+        };
+
+        var identity = new ClaimsIdentity(claims, "TestScheme");
         var principal = new ClaimsPrincipal(identity);
-        var ticket = new AuthenticationTicket(principal, "TestScheme"); // "TestScheme" should be the scheme configured in the startup
+        var ticket = new AuthenticationTicket(principal, "TestScheme");
+
         return Task.FromResult(AuthenticateResult.Success(ticket));
     }
-
 }

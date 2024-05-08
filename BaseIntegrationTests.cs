@@ -1,40 +1,36 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using PlanIT.API.Models.DTOs;
-using PlanIT.API.Models.Entities;
-using PlanIT.API.Services;
-using PlanIT.API.Services.Interfaces;
-
+using System;
+using Microsoft.EntityFrameworkCore;
+using System.Threading.Tasks;
+using PlanIT.API.Data;
 
 namespace PlanITAPI.IntegrationTests.Docker;
 
-// Base clase
-public class BaseIntegrationTests : IClassFixture<PlanITWebAppFactory>, IDisposable
+public class BaseIntegrationTests : IDisposable
 {
     private readonly IServiceScope _serviceScope;
+    private readonly PlanITDbContext _dbContext;
 
     public BaseIntegrationTests(PlanITWebAppFactory factory)
     {
         _serviceScope = factory.Services.CreateScope();
         Client = factory.CreateClient();
 
-       
-        UserService = _serviceScope.ServiceProvider.GetService<IUserService>();
-        // EventService = _serviceScope.ServiceProvider.GetService<IService<Event>>();
-        
-        
+        // Retrieve DbContext from service scope
+        _dbContext = _serviceScope.ServiceProvider.GetRequiredService<PlanITDbContext>();
+
+        // Start transaction
+        _dbContext.Database.BeginTransaction();
     }
 
-
-
-    public HttpClient Client { get; init; }
-    public IUserService? UserService { get; init; }
-    
-    // public IService<Event>? EventService { get; init; }
-   
-
+    public HttpClient Client { get; }
 
     public void Dispose()
     {
+        // Rollback transaction after each test to cleanup the DB state
+        _dbContext.Database.RollbackTransaction();
+        _dbContext.Dispose();
         Client?.Dispose();
+        _serviceScope.Dispose();
     }
 }
