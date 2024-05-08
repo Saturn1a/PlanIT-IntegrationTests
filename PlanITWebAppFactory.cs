@@ -1,21 +1,16 @@
 ﻿using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.AspNetCore.TestHost;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.VisualStudio.TestPlatform.TestHost;
 using PlanIT.API.Data;
-using PlanIT.API.Models.DTOs;
-using PlanIT.API.Services.Interfaces;
-using PlanIT.API.Services;
+using Microsoft.EntityFrameworkCore;
 using Testcontainers.MySql;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.TestHost;
 
 namespace PlanITAPI.IntegrationTests.Docker;
 
 public class PlanITWebAppFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
-
     private readonly MySqlContainer _mySqlContainer;
 
     public PlanITWebAppFactory()
@@ -32,51 +27,35 @@ public class PlanITWebAppFactory : WebApplicationFactory<Program>, IAsyncLifetim
     {
         builder.ConfigureTestServices(services =>
         {
-            // Removes DbContextOptions
-            var descriptor = services.FirstOrDefault(s => s.ServiceType == typeof(DbContextOptions<PlanITDbContext>));
-
-            if (descriptor != null)
+            // Enhanced DbContext setup for transaction management
+            services.AddScoped<PlanITDbContext>(provider =>
             {
-                services.Remove(descriptor);
-            }
-
-            // Sets up new DbContext
-            services.AddDbContext<PlanITDbContext>(options =>
-            {
-                options.UseMySql(
-                    _mySqlContainer.GetConnectionString(),
-                    new MySqlServerVersion(new Version(8, 0, 33)),
-                    builder =>
-                    {
-                        builder.EnableRetryOnFailure();
-                    });
+                var options = new DbContextOptionsBuilder<PlanITDbContext>()
+                    .UseMySql(_mySqlContainer.GetConnectionString(), new MySqlServerVersion(new Version(8, 0, 33)))
+                    .Options;
+                return new PlanITDbContext(options);
             });
 
-
-            services.AddAuthentication(options =>
+            // Authentication and authorization setup
+            services.AddAuthentication("TestScheme").AddScheme<AuthenticationSchemeOptions, TestAuthHandler>("TestScheme", options => { });
+            services.AddAuthorization(options =>
             {
-                options.DefaultAuthenticateScheme = "TestScheme";
-                options.DefaultChallengeScheme = "TestScheme";
-            })
-            .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>("TestScheme", options => { });
-
-
-
-        });   
-
+                options.AddPolicy("Bearer", policy =>
+                {
+                    policy.RequireAuthenticatedUser();
+                    policy.AuthenticationSchemes = new List<string> { "TestScheme" };
+                });
+            });
+        });
     }
 
-    
-    // Starts container
     public async Task InitializeAsync()
     {
         await _mySqlContainer.StartAsync();
     }
 
-    // Stops container
     public new async Task DisposeAsync()
     {
         await _mySqlContainer.StopAsync();
     }
-
 }
