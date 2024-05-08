@@ -18,14 +18,14 @@ public class TestAuthHandler : AuthenticationHandler<AuthenticationSchemeOptions
 
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        // Example user details
-        var userId = "1";  // Adjust as necessary to match your test user's ID
-        var userEmail = "perhansen@mail.com";  // Adjust as necessary to match your test user's email
+        
+        var userId = "1";  
+        var userEmail = "perhansen@mail.com";
 
         var claims = new[] {
             new Claim(ClaimTypes.NameIdentifier, userId),
             new Claim(ClaimTypes.Email, userEmail),
-            // Add other claims as necessary to match JWT token claims
+           
         };
 
         var identity = new ClaimsIdentity(claims, "TestScheme");
